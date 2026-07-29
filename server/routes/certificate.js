@@ -25,72 +25,77 @@ cloudinary.config({
 //     api_secret: 's7m0xqIovVqH6v8CJhpozcGvLBc', // Replace with your Cloudinary API secret
 // });
 
-const generateCertificate = async (userId, purpose) => {
-    try {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new Error("User not found");
-        }
-
-        const certificateId = `CERT-${Date.now() + user.name}`;
-
-        const template = await loadImage(TEMPLATE_PATH); // Replace with your template path
-
-        const canvas = createCanvas(template.width, template.height);
-        const ctx = canvas.getContext("2d");
-
-        ctx.drawImage(template, 0, 0, template.width, template.height);
-
-        // Add text to the certificate
-        ctx.font = "100px Calibri";
-        ctx.fillStyle = "black";
-        ctx.textAlign = "center";
-        ctx.fillText(user.name, canvas.width / 2, 647);
-
-        ctx.font = "45px Calibri";
-        ctx.fillText(purpose, 1300, 769);
-
-        const issueDate = new Date().toLocaleDateString();
-        ctx.font = "45px Calibri";
-        ctx.fillText(issueDate, 450, 845);
-
-        // Convert canvas to buffer (JPEG format)
-        const buffer = canvas.toBuffer("image/jpeg");
-
-        // Upload image to Cloudinary
-        cloudinary.uploader.upload_stream(
-            { resource_type: "image", public_id: certificateId },
-            async (error, result) => {
-                if (error) {
-                    console.error("Error uploading to Cloudinary:", error);
-                    throw new Error("Cloudinary upload failed: " + error.message);
-                }
-
-                if (result) {
-                    console.log("Image uploaded successfully:", result.secure_url);
-                }
-
-                // Once uploaded, save the certificate info
-                const certificate = new Certificate({
-                    certificateId,
-                    certificateImage: result.secure_url, // Get URL of the uploaded image
-                    issueDate: new Date(),
-                    playListName: purpose
-                });
-
-                await certificate.save();
-
-                // Attach certificate to the user
-                user.userCertificates.push(certificate._id);
-                await user.save();
-
-                return certificate;
+const generateCertificate = (userId, purpose) => {
+    return new Promise(async (resolve, reject) => {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                return reject(new Error("User not found"));
             }
-        ).end(buffer); // Send the buffer using .end()
-    } catch (error) {
-        console.error("Error in generateCertificate:", error);
-        throw error;
-    }
+
+            // Using alphanumeric spaces to ensure safe ID strings for Cloudinary assets
+            const certificateId = `CERT-${Date.now()}-${user.name.replace(/\s+/g, '_')}`;
+
+            const template = await loadImage(TEMPLATE_PATH);
+            const canvas = createCanvas(template.width, template.height);
+            const ctx = canvas.getContext("2d");
+
+            ctx.drawImage(template, 0, 0, template.width, template.height);
+
+            // Add text to the certificate
+            ctx.font = "100px Calibri";
+            ctx.fillStyle = "black";
+            ctx.textAlign = "center";
+            ctx.fillText(user.name, canvas.width / 2, 647);
+
+            ctx.font = "45px Calibri";
+            ctx.fillText(purpose, 1300, 769);
+
+            const issueDate = new Date().toLocaleDateString();
+            ctx.font = "45px Calibri";
+            ctx.fillText(issueDate, 450, 845);
+
+            // Convert canvas to buffer
+            const buffer = canvas.toBuffer("image/jpeg");
+
+            // Wrap the asynchronous stream upload inside the promise execution cycle
+            const uploadStream = cloudinary.uploader.upload_stream(
+                { resource_type: "image", public_id: certificateId },
+                async (error, result) => {
+                    if (error) {
+                        console.error("Error uploading to Cloudinary:", error);
+                        return reject(new Error("Cloudinary upload failed: " + error.message));
+                    }
+
+                    try {
+                        // Once uploaded successfully, save to MongoDB
+                        const certificate = new Certificate({
+                            certificateId,
+                            certificateImage: result.secure_url,
+                            issueDate: new Date(),
+                            playListName: purpose
+                        });
+
+                        await certificate.save();
+
+                        // Attach certificate ID reference array to user profile
+                        user.userCertificates.push(certificate._id);
+                        await user.save();
+
+                        console.log("Certificate successfully generated and recorded:", uniqueCertId);
+                        resolve(certificate); // Resolve the promise with the fully saved document
+                    } catch (dbError) {
+                        reject(dbError);
+                    }
+                }
+            );
+
+            uploadStream.end(buffer);
+        } catch (error) {
+            console.error("Error in generateCertificate process:", error);
+            reject(error);
+        }
+    });
 };
 
 

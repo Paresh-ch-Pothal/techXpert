@@ -82,7 +82,7 @@ const storage = new CloudinaryStorage({
         let resourceType = "auto"; // Auto-detect file type (video, image, etc.)
 
         if (file.fieldname === "thumbnail") {
-            folder = "thumbnails"; 
+            folder = "thumbnails";
             resourceType = "image";
         }
 
@@ -94,37 +94,56 @@ const storage = new CloudinaryStorage({
     },
 });
 
+router.get("/upload-signature", fetchuser, (req, res) => {
+    const timestamp = Math.round(Date.now() / 1000);
+    const resourceType = req.query.resourceType === "image" ? "image" : "video";
+    const folder = resourceType === "image" ? "thumbnails" : "videos";
+    const publicId = `${Date.now()}-${req.user.id}`;
+
+    const paramsToSign = { timestamp, folder, public_id: publicId };
+
+    const signature = cloudinary.utils.api_sign_request(
+        paramsToSign,
+        process.env.API_SECRET
+    );
+
+    res.status(200).json({
+        signature,
+        timestamp,
+        cloudName: process.env.CLOUD_NAME,
+        apiKey: process.env.API_KEY,
+        folder,
+        publicId,
+        resourceType,
+    });
+});
+
 const upload = multer({ storage });
 
 // Upload Route
-router.post("/upload", upload.fields([{ name: 'video' }, { name: "thumbnail" }]), fetchuser, async (req, res) => {
+router.post("/upload", fetchuser, async (req, res) => {
     try {
+        const { title, videoURL, thumbnailURL } = req.body;
         const userId = req.user.id;
 
-        // Get Cloudinary URLs
-        const videoURL = req.files.video[0].path;
-        const thumbnailURL = req.files.thumbnail[0].path;
+        if (!title || !videoURL || !thumbnailURL) {
+            return res.status(400).send("Missing required fields");
+        }
 
-        // Save video details
-        const videoData = {
-            title: req.body.title,
+        const newVideo = await Video.create({
+            title,
             url: videoURL,
             thumbnail: thumbnailURL,
-            userid: userId
-        };
-
-        const newVideo = await Video.create(videoData);
+            userid: userId,
+        });
 
         const newPlaylist = await Playlist.create({
             name: `Playlist for ${newVideo.title}`,
             videos: [newVideo._id],
-            userid: userId
+            userid: userId,
         });
 
-        res.status(200).send({
-            video: newVideo,
-            playlist: newPlaylist
-        });
+        res.status(200).send({ video: newVideo, playlist: newPlaylist });
     } catch (error) {
         console.error(error);
         res.status(500).send("Server Error");
@@ -173,8 +192,6 @@ router.get("/fetchplaylistbyid/:id", async (req, res) => {
 
 
 //uploading videos to the same playlist
-
-
 const storage1 = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
@@ -197,10 +214,16 @@ const storage1 = new CloudinaryStorage({
 const upload1 = multer({ storage: storage1 });
 
 // Upload to Existing Playlist Route
-router.post("/uploadtoplaylist/:id", upload1.fields([{ name: 'video' }, { name: "thumbnail" }]), fetchuser, async (req, res) => {
+router.post("/uploadtoplaylist/:id", fetchuser, async (req, res) => {
     try {
         const playlistId = req.params.id;
         const userId = req.user.id;
+        const { title, videoURL, thumbnailURL } = req.body;
+
+        if (!title || !videoURL || !thumbnailURL) {
+            return res.status(400).json({ error: "Missing required fields" });
+        }
+
         const playlist = await Playlist.findById(playlistId);
 
         if (!playlist) {
@@ -212,15 +235,11 @@ router.post("/uploadtoplaylist/:id", upload1.fields([{ name: 'video' }, { name: 
             return res.status(401).json({ error: "Unauthorized" });
         }
 
-        // Get Cloudinary URLs
-        const videoURL = req.files.video[0].path;
-        const thumbnailURL = req.files.thumbnail[0].path;
-
         const videoData = {
-            title: req.body.title,
+            title,
             url: videoURL,
             thumbnail: thumbnailURL,
-            userid: userId
+            userid: userId,
         };
 
         const newVideo = await Video.create(videoData);
@@ -230,7 +249,7 @@ router.post("/uploadtoplaylist/:id", upload1.fields([{ name: 'video' }, { name: 
 
         res.status(200).send({
             video: newVideo,
-            playlist: playlist
+            playlist: playlist,
         });
     } catch (error) {
         console.error(error);
@@ -451,7 +470,7 @@ router.post("/completebyuser/:id", fetchuser, async (req, res) => {
         const videoId = req.params.id
         const userId = req.user.id
         await Video.findByIdAndUpdate(videoId, { $addToSet: { completedByUser: userId } })
-        await User.findByIdAndUpdate(userId, { $addToSet: { completedVideo: videoId  } })
+        await User.findByIdAndUpdate(userId, { $addToSet: { completedVideo: videoId } })
         return res.status(200).json({ success: true, message: "Successfully Saved" });
     } catch (error) {
         return res.json(500).send("Some internal error is there");
@@ -477,12 +496,12 @@ router.get("/countvideos/:id", fetchuser, async (req, res) => {
     const userId = req.user.id
     try {
         const videos = await Playlist.findById(playlistId).populate("videos")
-        const playlistname=await Playlist.findById(playlistId).select("name")
+        const playlistname = await Playlist.findById(playlistId).select("name")
         const NoOfVideos = videos.videos.length
         const countVideosOfUser = videos.videos.filter((video) => {
             return video.completedByUser.includes(userId);
         }).length;
-        return res.status(200).json({ success: true, NoOfVideos, countVideosOfUser,playlistname })
+        return res.status(200).json({ success: true, NoOfVideos, countVideosOfUser, playlistname })
     } catch (error) {
         return res.status(500).send("Some internal error is there");
     }
@@ -522,16 +541,16 @@ router.get("/fetchplaylistname/:id", async (req, res) => {
 
 
 // .. marking a video is completed or not ..//
-router.post("/isPlaylistComplete/:id",async(req,res)=>{
+router.post("/isPlaylistComplete/:id", async (req, res) => {
     try {
-        const playlistId=req.params.id
-        const playlist=await Playlist.findById(playlistId);
-        playlist.isCompleted=true;
+        const playlistId = req.params.id
+        const playlist = await Playlist.findById(playlistId);
+        playlist.isCompleted = true;
         await playlist.save();
-        return res.status(200).json({success: false,playlist});
+        return res.status(200).json({ success: false, playlist });
 
     } catch (error) {
-        
+
     }
 })
 

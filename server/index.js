@@ -5,6 +5,7 @@ const { connectToMongoDB } = require("./connection");
 const userRoutes = require("./routes/user");
 const videoRoutes = require("./routes/video");
 const certificateRoutes = require("./routes/certificate")
+const assessmentRoutes = require("./routes/assessment")
 const path = require("path")
 require("dotenv").config();
 
@@ -36,6 +37,7 @@ connectToMongoDB();
 app.use("/api/user", userRoutes);
 app.use("/api/video", videoRoutes)
 app.use("/api/certificate", certificateRoutes);
+app.use("/api/assessment", assessmentRoutes);
 
 app.get("/", (req, res) => {
     res.send("TechXpert API is running");
