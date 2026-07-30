@@ -1,5 +1,5 @@
 const express = require('express');
-const { generateAndSaveTest, submitAndEvaluateTest } = require('../controller/assessment.controller');
+const {submitAndEvaluateTest, generateAndSaveTest } = require('../controller/assessment.controller');
 const fetchuser = require('../middleware/fetchuser');
 const router = express.Router();
 

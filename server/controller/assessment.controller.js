@@ -12,6 +12,7 @@ const fs = require("fs");
 const Certificate = require("../models/certificate");
 const fetchuser = require("../middleware/fetchuser");
 const path = require("path");
+const renderCertificate = require('../utils/certiicateRender');
 const PUBLIC_DIR = path.join(__dirname, "../public");
 const CERTIFICATES_DIR = path.join(PUBLIC_DIR, "certificates");
 const TEMPLATE_PATH = path.join(PUBLIC_DIR, "load/certificate.jpg");
@@ -22,7 +23,7 @@ const PYTHON_AI_SERVICE_URL = process.env.PYTHON_AI_SERVICE_URL || 'http://local
 exports.generateAndSaveTest = async (req, res) => {
     try {
         const { topic, test_type } = req.body;
-        
+
         // Basic Input Validation
         if (!topic || !test_type) {
             return res.status(400).json({ error: "Topic and test_type are required." });
@@ -65,7 +66,7 @@ exports.generateAndSaveTest = async (req, res) => {
 
     } catch (error) {
         console.error("Express Assessment Pipeline Error:", error.message);
-        
+
         // Handle cases where the Python service is offline
         if (error.code === 'ECONNREFUSED') {
             return res.status(503).json({ error: "AI processing engine is currently offline." });
@@ -75,79 +76,109 @@ exports.generateAndSaveTest = async (req, res) => {
     }
 };
 
-const generateCertificate = (userId, purpose) => {
-    return new Promise(async (resolve, reject) => {
-        try {
-            const user = await User.findById(userId);
-            if (!user) {
-                return reject(new Error("User not found"));
-            }
+// const generateCertificate = (userId, purpose) => {
+//     return new Promise(async (resolve, reject) => {
+//         try {
+//             const user = await User.findById(userId);
+//             if (!user) {
+//                 return reject(new Error("User not found"));
+//             }
 
-            // Using alphanumeric spaces to ensure safe ID strings for Cloudinary assets
-            const certificateId = `CERT-${Date.now()}-${user.name.replace(/\s+/g, '_')}`;
+//             // Using alphanumeric spaces to ensure safe ID strings for Cloudinary assets
+//             const certificateId = `CERT-${Date.now()}-${user.name.replace(/\s+/g, '_')}`;
 
-            const template = await loadImage(TEMPLATE_PATH);
-            const canvas = createCanvas(template.width, template.height);
-            const ctx = canvas.getContext("2d");
+//             const template = await loadImage(TEMPLATE_PATH);
+//             const canvas = createCanvas(template.width, template.height);
+//             const ctx = canvas.getContext("2d");
 
-            ctx.drawImage(template, 0, 0, template.width, template.height);
+//             ctx.drawImage(template, 0, 0, template.width, template.height);
 
-            // Add text to the certificate
-            ctx.font = "100px Calibri";
-            ctx.fillStyle = "black";
-            ctx.textAlign = "center";
-            ctx.fillText(user.name, canvas.width / 2, 647);
+//             // Add text to the certificate
+//             ctx.font = "100px Calibri";
+//             ctx.fillStyle = "black";
+//             ctx.textAlign = "center";
+//             ctx.fillText(user.name, canvas.width / 2, 647);
 
-            ctx.font = "45px Calibri";
-            ctx.fillText(purpose, 1300, 769);
+//             ctx.font = "45px Calibri";
+//             ctx.fillText(purpose, 1300, 769);
 
-            const issueDate = new Date().toLocaleDateString();
-            ctx.font = "45px Calibri";
-            ctx.fillText(issueDate, 450, 845);
+//             const issueDate = new Date().toLocaleDateString();
+//             ctx.font = "45px Calibri";
+//             ctx.fillText(issueDate, 450, 845);
 
-            // Convert canvas to buffer
-            const buffer = canvas.toBuffer("image/jpeg");
+//             // Convert canvas to buffer
+//             const buffer = canvas.toBuffer("image/jpeg");
 
-            // Wrap the asynchronous stream upload inside the promise execution cycle
-            const uploadStream = cloudinary.uploader.upload_stream(
-                { resource_type: "image", public_id: certificateId },
-                async (error, result) => {
-                    if (error) {
-                        console.error("Error uploading to Cloudinary:", error);
-                        return reject(new Error("Cloudinary upload failed: " + error.message));
-                    }
+//             // Wrap the asynchronous stream upload inside the promise execution cycle
+//             const uploadStream = cloudinary.uploader.upload_stream(
+//                 { resource_type: "image", public_id: certificateId },
+//                 async (error, result) => {
+//                     if (error) {
+//                         console.error("Error uploading to Cloudinary:", error);
+//                         return reject(new Error("Cloudinary upload failed: " + error.message));
+//                     }
 
-                    try {
-                        // Once uploaded successfully, save to MongoDB
-                        const certificate = new Certificate({
-                            certificateId,
-                            certificateImage: result.secure_url,
-                            issueDate: new Date(),
-                            playListName: purpose
-                        });
+//                     try {
+//                         // Once uploaded successfully, save to MongoDB
+//                         const certificate = new Certificate({
+//                             certificateId,
+//                             certificateImage: result.secure_url,
+//                             issueDate: new Date(),
+//                             playListName: purpose
+//                         });
 
-                        await certificate.save();
+//                         await certificate.save();
 
-                        // Attach certificate ID reference array to user profile
-                        user.userCertificates.push(certificate._id);
-                        await user.save();
+//                         // Attach certificate ID reference array to user profile
+//                         user.userCertificates.push(certificate._id);
+//                         await user.save();
 
-                        console.log("Certificate successfully generated and recorded:", uniqueCertId);
-                        resolve(certificate); // Resolve the promise with the fully saved document
-                    } catch (dbError) {
-                        reject(dbError);
-                    }
-                }
-            );
+//                         console.log("Certificate successfully generated and recorded:", certificateId);
+//                         resolve(certificate); // Resolve the promise with the fully saved document
+//                     } catch (dbError) {
+//                         reject(dbError);
+//                     }
+//                 }
+//             );
 
-            uploadStream.end(buffer);
-        } catch (error) {
-            console.error("Error in generateCertificate process:", error);
-            reject(error);
-        }
+//             uploadStream.end(buffer);
+//         } catch (error) {
+//             console.error("Error in generateCertificate process:", error);
+//             reject(error);
+//         }
+//     });
+// };
+
+const generateCertificate = async (userId, purpose) => {
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User not found");
+
+    const certificateId = `CERT-${Date.now()}-${user.name.replace(/\s+/g, '_')}`;
+    const issueDate = new Date().toLocaleDateString();
+
+    const buffer = await renderCertificate({ userName: user.name, purpose, issueDate });
+
+    const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: "image", public_id: certificateId, folder: "certificates" },
+            (error, res) => error ? reject(error) : resolve(res)
+        );
+        stream.end(buffer);
     });
-};
 
+    const certificate = new Certificate({
+        certificateId,
+        certificateImage: result.secure_url,
+        issueDate: new Date(),
+        playListName: purpose
+    });
+    await certificate.save();
+
+    user.userCertificates.push(certificate._id);
+    await user.save();
+
+    return certificate;
+};
 
 
 
@@ -234,20 +265,18 @@ exports.submitAndEvaluateTest = async (req, res) => {
 
         // 4. MINT THE CERTIFICATE LIVE IF PASSED
         if (isPassed) {
-            // if (assessment.type === 'creator_verification') {
-            //     await User.findByIdAndUpdate(assessment.userId, { isCreator: true });
-            // } else if (assessment.type === 'course_certification') {
-            //     try {
-            //         // Call the newly fixed image canvas generator using the topic name as the purpose parameter
-            //         const generatedCert = await generateCertificate(assessment.userId, assessment.topicOrPlaylistId);
-            //         generatedCertUrl = generatedCert.certificateImage;
-            //     } catch (certError) {
-            //         console.error("Critical Failure auto-generating physical canvas certificate:", certError);
-            //         // We don't fail the whole response since the grade is saved. The user can retry later.
-            //     }
-            // }
-            const generatedCert = await generateCertificate(assessment.userId, assessment.topicOrPlaylistId);
-            generatedCertUrl = generatedCert.certificateImage;
+            if (assessment.type === 'creator_verification') {
+                await User.findByIdAndUpdate(assessment.userId, { isCreator: true });
+            } else if (assessment.type === 'course_certification') {
+                try {
+                    // Call the newly fixed image canvas generator using the topic name as the purpose parameter
+                    const generatedCert = await generateCertificate(assessment.userId, assessment.topicOrPlaylistId);
+                    generatedCertUrl = generatedCert.certificateImage;
+                } catch (certError) {
+                    console.error("Critical Failure auto-generating physical canvas certificate:", certError);
+                    // We don't fail the whole response since the grade is saved. The user can retry later.
+                }
+            }
         }
 
         return res.status(200).json({

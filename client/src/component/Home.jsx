@@ -502,12 +502,11 @@ const Home = () => {
                                 >
                                     Start learning
                                 </Link>
-                                <Link
-                                    to="/uploadvideo"
+                                <div
                                     className="txp-btn-outline inline-flex items-center justify-center text-[#101827] bg-transparent py-3 px-8 rounded-lg text-base font-semibold"
                                 >
                                     Start teaching
-                                </Link>
+                                </div>
                             </div>
 
                             <div className="flex flex-wrap gap-x-8 gap-y-3">
@@ -613,15 +612,6 @@ const Home = () => {
                                 <p className="leading-relaxed text-[#5B6472] text-[15px] mb-5 flex-1">
                                     {feature.text}
                                 </p>
-                                <Link
-                                    to="/uploadvideo"
-                                    className="inline-flex self-start items-center gap-1.5 text-[#A15E13] hover:text-[#101827] text-sm font-semibold"
-                                >
-                                    Read more
-                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                                        <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                                    </svg>
-                                </Link>
                             </div>
                         ))}
                     </div>
