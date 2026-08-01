@@ -583,7 +583,7 @@ import { FaCloudUploadAlt, FaImage, FaVideo, FaTimes, FaCheckCircle, FaPencilAlt
 import { BiSolidLike, BiSolidDislike } from "react-icons/bi"
 import CountUp from 'react-countup'
 import { API_BASE } from '../config'
-import { uploadVideoAndThumbnail } from '../utils/cloudinaryUpload'
+import { uploadVideoAndThumbnail } from '../utils/CloudinaryUpload'
 
 
 const formatBytes = (bytes) => {
