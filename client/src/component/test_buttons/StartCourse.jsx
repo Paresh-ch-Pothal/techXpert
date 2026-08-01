@@ -1,7 +1,7 @@
 import api from "../../utils/api";
 
 // StartCourseTest.jsx
-const StartCourseTest = ({ playlistId, playlistName }) => {
+const StartCourseTest = ({ playlistName }) => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
 
@@ -29,3 +29,5 @@ const StartCourseTest = ({ playlistId, playlistName }) => {
     </button>
   );
 };
+
+export default StartCourseTest;

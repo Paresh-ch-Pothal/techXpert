@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
-const User = require("./user") ;
-const Playlist = require("./playlist"); 
+const User = require("./user");
+const Playlist = require("./playlist");
 
 const VideoSchema = new mongoose.Schema({
     title: {
@@ -21,7 +21,7 @@ const VideoSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     },
-    likes:{
+    likes: {
         type: Number,
         default: 0
     },
@@ -29,20 +29,26 @@ const VideoSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    likedBy:[{
+    likedBy: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
-    dislikedBy:[{
+    dislikedBy: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
     }],
-    completedByUser:[
+    completedByUser: [
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref:'User'
+            ref: 'User'
         }
-    ]
+    ],
+    thumbnailPublicId: {
+        type: String
+    },
+    videoPublicId: {
+        type: String
+    },
 }, {
     timestamps: true
 });

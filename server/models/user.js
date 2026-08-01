@@ -34,13 +34,13 @@ const UserSchema = new mongoose.Schema({
     userCertificates:[
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: Certificate
+            ref: 'Certificate'
         }
     ],
     completedPlaylist:[
         {
             type: mongoose.Schema.Types.ObjectId,
-            ref: Playlist
+            ref: 'Playlist'
         }
     ],
 

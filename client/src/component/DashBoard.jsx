@@ -1,6 +1,5 @@
-
 // import React, { useEffect, useState } from 'react'
-// import { Link } from 'react-router-dom'
+// import { Link, useNavigate } from 'react-router-dom'
 // import { MdDelete } from "react-icons/md"
 // import { FaCertificate } from "react-icons/fa"
 // import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
@@ -9,11 +8,58 @@
 
 // const DashBoard = () => {
 //     const token = localStorage.getItem('token')
+//     const navigate = useNavigate()
 
 //     const [playlists, setPlaylists] = useState([])
 //     const [loadingUploads, setLoadingUploads] = useState(true)
 //     const [deleteTarget, setDeleteTarget] = useState(null)
 //     const [deleting, setDeleting] = useState(false)
+
+//     // Start uploading playlist flow: user opens the modal, types the
+//     // playlist/course name, then the "Start creator" button appears and
+//     // kicks off the creator verification test for that name.
+//     const [showUploadModal, setShowUploadModal] = useState(false)
+//     const [playlistNameInput, setPlaylistNameInput] = useState('')
+//     const [startingTest, setStartingTest] = useState(false)
+
+//     const closeUploadModal = () => {
+//         if (startingTest) return
+//         setShowUploadModal(false)
+//         setPlaylistNameInput('')
+//     }
+
+//     const handleStartCreatorTest = async () => {
+//         if (!playlistNameInput.trim()) return
+//         setStartingTest(true)
+//         try {
+//             const response = await fetch(`${API_BASE}/api/assessment/start-test`, {
+//                 method: 'POST',
+//                 headers: {
+//                     'Content-Type': 'application/json',
+//                     'auth-token': token,
+//                 },
+//                 body: JSON.stringify({
+//                     topic: playlistNameInput.trim(),
+//                     test_type: 'creator_verification',
+//                 }),
+//             })
+//             const data = await response.json()
+//             if (!response.ok) {
+//                 throw new Error(data?.error || 'Could not start the test.')
+//             }
+//             navigate(`/test/${data.assessmentId}`, {
+//                 state: {
+//                     questions: data.questions,
+//                     testType: 'creator_verification',
+//                     topic: playlistNameInput.trim(),
+//                 },
+//             })
+//         } catch (err) {
+//             alert(err.message || 'Could not start the test.')
+//         } finally {
+//             setStartingTest(false)
+//         }
+//     }
 
 //     const populatevideos = async () => {
 //         setLoadingUploads(true)
@@ -263,17 +309,21 @@
 //                 </div>
 
 //                 {/* Uploaded playlists */}
-//                 <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
-//                     <h2 className="txp-wordmark text-[#101827] font-semibold text-2xl">Your uploaded courses</h2>
-//                     <span className="txp-mono text-[10px] uppercase text-[#A15E13] bg-[#FBF0DF] border border-[#EAD3AE] rounded-full px-3 py-1">
-//                         Qualifying test — coming soon
-//                     </span>
+//                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+//                     <div>
+//                         <h2 className="txp-wordmark text-[#101827] font-semibold text-2xl mb-1.5">Your uploaded courses</h2>
+//                         <p className="text-[#5B6472] text-sm max-w-xl">
+//                             Name the playlist or course you want to teach, then pass a
+//                             short verification test to unlock uploading.
+//                         </p>
+//                     </div>
+//                     <button
+//                         onClick={() => setShowUploadModal(true)}
+//                         className="txp-btn-fill text-white text-sm font-semibold px-5 py-2.5 rounded-lg whitespace-nowrap"
+//                     >
+//                         Start uploading playlist
+//                     </button>
 //                 </div>
-//                 <p className="text-[#5B6472] text-sm mb-8 max-w-xl">
-//                     Uploading will soon require passing a short qualifying test first.
-//                     That's not built yet — for now this is just here so you know
-//                     what's coming.
-//                 </p>
 
 //                 {loadingUploads ? (
 //                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -287,9 +337,16 @@
 //                         <p className="txp-wordmark text-[#101827] font-semibold text-lg mb-2">
 //                             You haven't uploaded a course yet
 //                         </p>
-//                         <p className="text-[#5B6472] text-sm">
-//                             <StartCreator/>
+//                         <p className="text-[#5B6472] text-sm mb-5">
+//                             Name the playlist you want to teach and pass a short
+//                             verification test to get started.
 //                         </p>
+//                         <button
+//                             onClick={() => setShowUploadModal(true)}
+//                             className="txp-btn-fill text-white text-sm font-semibold px-5 py-2.5 rounded-lg"
+//                         >
+//                             Start uploading playlist
+//                         </button>
 //                     </div>
 //                 ) : (
 //                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
@@ -350,6 +407,52 @@
 //                     </div>
 //                 </div>
 //             )}
+
+//             {/* Start uploading playlist / start creator verification test */}
+//             {showUploadModal && (
+//                 <div className="txp-modal-backdrop" onClick={closeUploadModal}>
+//                     <div className="txp-modal-card" onClick={(e) => e.stopPropagation()}>
+//                         <h3 className="txp-wordmark text-[#101827] font-semibold text-lg mb-2">Start uploading a playlist</h3>
+//                         <p className="text-[#5B6472] text-sm mb-5">
+//                             Enter the name of the playlist or course you want to teach.
+//                             Once you pass the short verification test, you'll be able to
+//                             upload it.
+//                         </p>
+
+//                         <label className="txp-mono text-[10px] uppercase text-[#A15E13] block mb-1.5">
+//                             Playlist / course name
+//                         </label>
+//                         <input
+//                             type="text"
+//                             value={playlistNameInput}
+//                             onChange={(e) => setPlaylistNameInput(e.target.value)}
+//                             placeholder="e.g. Intro to React Hooks"
+//                             disabled={startingTest}
+//                             autoFocus
+//                             className="w-full border border-[#E8E4DA] rounded-lg px-3 py-2.5 text-sm text-[#101827] mb-6 outline-none focus:border-[#C6741B] transition-colors disabled:opacity-60"
+//                         />
+
+//                         <div className="flex gap-3">
+//                             <button
+//                                 onClick={closeUploadModal}
+//                                 disabled={startingTest}
+//                                 className="txp-btn-outline flex-1 text-sm font-semibold py-2.5 rounded-lg"
+//                             >
+//                                 Cancel
+//                             </button>
+//                             {playlistNameInput.trim() && (
+//                                 <button
+//                                     onClick={handleStartCreatorTest}
+//                                     disabled={startingTest}
+//                                     className="txp-btn-fill flex-1 text-sm font-semibold py-2.5 rounded-lg text-white disabled:opacity-65"
+//                                 >
+//                                     {startingTest ? 'Preparing your test...' : 'Start creator'}
+//                                 </button>
+//                             )}
+//                         </div>
+//                     </div>
+//                 </div>
+//             )}
 //         </div>
 
 //         // Future dashboard ideas noted from the original: recent uploads,
@@ -359,13 +462,27 @@
 
 // export default DashBoard
 
+
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { MdDelete } from "react-icons/md"
-import { FaCertificate } from "react-icons/fa"
+import { FaCertificate, FaCheckCircle } from "react-icons/fa"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import ProgressBar from "@ramonak/react-progress-bar"
 import { API_BASE } from '../config'
+
+// Custom Button Component that handles the click event and receives the playlist name
+const PlaylistActionButton = ({ playlistName, onStartTest, loading }) => {
+    return (
+        <button
+            onClick={() => onStartTest(playlistName)}
+            disabled={loading}
+            className="txp-btn-fill text-xs font-semibold px-3 py-1.5 rounded-md text-white transition-all disabled:opacity-50"
+        >
+            {loading ? "Preparing..." : "Take Test for Certificate"}
+        </button>
+    );
+};
 
 const DashBoard = () => {
     const token = localStorage.getItem('token')
@@ -376,9 +493,10 @@ const DashBoard = () => {
     const [deleteTarget, setDeleteTarget] = useState(null)
     const [deleting, setDeleting] = useState(false)
 
-    // Start uploading playlist flow: user opens the modal, types the
-    // playlist/course name, then the "Start creator" button appears and
-    // kicks off the creator verification test for that name.
+    // State for playlists completed by the user
+    const [userCompletedPlaylists, setUserCompletedPlaylists] = useState([])
+    const [loadingCompleted, setLoadingCompleted] = useState(true)
+
     const [showUploadModal, setShowUploadModal] = useState(false)
     const [playlistNameInput, setPlaylistNameInput] = useState('')
     const [startingTest, setStartingTest] = useState(false)
@@ -540,17 +658,26 @@ const DashBoard = () => {
         }
     }, [seenplaylist])
 
+    // Updated functionality to query the modified aggregate route
     const completedPlaylistByUser = async () => {
+        setLoadingCompleted(true)
         try {
-            await fetch(`${API_BASE}/api/user/completedPLaylistByUser`, {
+            const response = await fetch(`${API_BASE}/api/user/completed-playlists-user-completed`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     "auth-token": token
                 },
             })
+            if (response.ok) {
+                const data = await response.json();
+                console.log(data.data)
+                setUserCompletedPlaylists(data.data);
+            }
         } catch (error) {
             console.log(error)
+        } finally {
+            setLoadingCompleted(false)
         }
     }
 
@@ -558,8 +685,50 @@ const DashBoard = () => {
         completedPlaylistByUser()
     }, [])
 
-    // Real progress data, chart-friendly: one bar per playlist the person
-    // has actually started, rounded for display.
+    // Click handler for your button component
+    const handleButtonClick = (name) => {
+        alert(`Selected Playlist: ${name}`);
+        // Add your custom programmatic logic using the playlist name here
+    };
+
+    const [startingTestPlaylist, setStartingTestPlaylist] = useState(null);
+
+    // Function to handle calling the start-test assessment API
+    const handleStartCertificationTest = async (playlistName) => {
+        setStartingTestPlaylist(playlistName);
+        try {
+            const res = await fetch(`${API_BASE}/api/assessment/start-test`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'auth-token': token,
+                },
+                body: JSON.stringify({
+                    topic: playlistName,
+                    test_type: 'course_certification'
+                })
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data?.error || 'Could not start the test.');
+            }
+
+            navigate(`/test/${data.assessmentId}`, {
+                state: {
+                    questions: data.questions,
+                    testType: 'course_certification',
+                    topic: playlistName
+                }
+            });
+        } catch (err) {
+            console.error(err);
+            alert(err.message || 'Could not start the test.');
+        } finally {
+            setStartingTestPlaylist(null);
+        }
+    };
+
     const chartData = percent
         .filter(Boolean)
         .map((p) => ({ name: p.playlistname, complete: Math.round(p.percentage) }))
@@ -669,6 +838,60 @@ const DashBoard = () => {
                     </div>
                 </div>
 
+                {/* Added Section: Completed Playlists By User */}
+                <div className="mb-14">
+                    <div className="mb-6">
+                        <h2 className="txp-wordmark text-[#101827] font-semibold text-2xl mb-1.5">Completed Courses & Certificates</h2>
+                        <p className="text-[#5B6472] text-sm max-w-2xl">
+                            Playlists that you have completely finished and are fully published by the creator.
+                            Pass the certification assessment test for a given course below to generate and unlock your official certificate.
+                        </p>
+                    </div>
+
+                    {loadingCompleted ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                            {Array.from({ length: 2 }).map((_, i) => (
+                                <div key={i} className="h-44 rounded-2xl bg-[#FBF7EF] border border-[#E8E4DA] animate-pulse" />
+                            ))}
+                        </div>
+                    ) : userCompletedPlaylists.length === 0 ? (
+                        <div className="bg-[#FBF7EF] border border-[#E8E4DA] rounded-2xl p-6 text-center max-w-lg">
+                            <p className="text-[#5B6472] text-sm">You haven't fully completed any playlists yet. Finish a course to unlock your assessment!</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                            {Array.isArray(userCompletedPlaylists) && userCompletedPlaylists.map((playlist) => {
+                                const isThisLoading = startingTestPlaylist === playlist.name;
+                                return (
+                                    <div key={playlist._id} className="txp-card bg-white border border-[#E8E4DA] rounded-2xl p-4 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-start justify-between gap-2 mb-2">
+                                                <h3 className="txp-wordmark text-[#101827] font-semibold text-base leading-snug line-clamp-2">
+                                                    {playlist.name}
+                                                </h3>
+                                                <FaCheckCircle className="text-green-600 shrink-0 mt-0.5" size={16} />
+                                            </div>
+                                            <p className="text-xs text-[#5B6472] mb-3">
+                                                Course completed! Take the test to claim your certificate.
+                                            </p>
+                                        </div>
+                                        <div className="mt-4 pt-3 border-t border-[#F1EDE3] flex items-center justify-between">
+                                            <span className="text-[11px] text-[#A15E13] txp-mono font-medium">Ready for Exam</span>
+                                            {!playlist.isCertified ? (<PlaylistActionButton
+                                                playlistName={playlist.name}
+                                                onStartTest={handleStartCertificationTest}
+                                                loading={isThisLoading}
+                                            />) : (
+                                                <div className="text-[11px] text-[#A15E13] txp-mono font-medium">Certified</div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+                </div>
+
                 {/* Uploaded playlists */}
                 <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
                     <div>
@@ -769,7 +992,7 @@ const DashBoard = () => {
                 </div>
             )}
 
-            {/* Start uploading playlist / start creator verification test */}
+            {/* Start uploading playlist modal */}
             {showUploadModal && (
                 <div className="txp-modal-backdrop" onClick={closeUploadModal}>
                     <div className="txp-modal-card" onClick={(e) => e.stopPropagation()}>
@@ -815,9 +1038,6 @@ const DashBoard = () => {
                 </div>
             )}
         </div>
-
-        // Future dashboard ideas noted from the original: recent uploads,
-        // recent videos watched, daily/weekly/monthly activity breakdown.
     )
 }
 

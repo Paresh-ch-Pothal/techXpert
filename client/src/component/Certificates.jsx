@@ -200,47 +200,6 @@ const Certificates = () => {
         myCertificates().finally(() => setLoadingList(false))
     }, [token])
 
-    const generateCertificate = async () => {
-        setGenerating(true)
-        setGenError(null)
-        setGenStepIndex(0)
-
-        stepIntervalRef.current = setInterval(() => {
-            setGenStepIndex((i) => Math.min(i + 1, GEN_STEPS.length - 1))
-        }, MIN_LOADER_MS / GEN_STEPS.length)
-
-        const startedAt = Date.now()
-
-        try {
-            const response = await fetch(`${API_BASE}/api/certificate/generateCertificate`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'auth-token': token
-                },
-            })
-            const data = await response.json()
-
-            const elapsed = Date.now() - startedAt
-            if (elapsed < MIN_LOADER_MS) {
-                await new Promise((resolve) => setTimeout(resolve, MIN_LOADER_MS - elapsed))
-            }
-
-            if (data.success === false) {
-                setGenError(data.error || "Couldn't generate a certificate right now.")
-            } else {
-                await myCertificates()
-                setBanner("Your certificate is ready.")
-                setTimeout(() => setBanner(null), 4000)
-            }
-        } catch (error) {
-            setGenError("Couldn't reach the server. Try again.")
-        } finally {
-            clearInterval(stepIntervalRef.current)
-            setGenerating(false)
-        }
-    }
-
     if (!token) {
         return (
             <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="min-h-screen bg-[#101827] flex items-center justify-center px-6">
@@ -342,14 +301,6 @@ const Certificates = () => {
                             Your certificates
                         </h1>
                     </div>
-                    <button
-                        onClick={generateCertificate}
-                        disabled={generating}
-                        className="txp-btn-fill flex items-center justify-center gap-2 text-[#FFFEFB] font-semibold text-[15px] py-3 px-7 rounded-lg"
-                    >
-                        <FaCertificate size={14} />
-                        {generating ? "Generating" : "Generate certificate"}
-                    </button>
                 </div>
 
                 {banner && (
@@ -416,27 +367,7 @@ const Certificates = () => {
                 )}
             </div>
 
-            {/* Generation loader */}
-            {generating && (
-                <div className="txp-modal-backdrop">
-                    <div className="txp-modal-card">
-                        <div className="flex justify-center mb-6">
-                            <SealMark size={64} animated />
-                        </div>
-                        <h2 className="txp-wordmark text-[#101827] font-semibold text-xl mb-2">
-                            Generating your certificate
-                        </h2>
-                        <p className="txp-mono text-[11px] text-[#A15E13] uppercase">
-                            {GEN_STEPS[genStepIndex]}
-                        </p>
-                        <div className="txp-step-dots">
-                            {GEN_STEPS.map((_, i) => (
-                                <span key={i} className={`txp-step-dot ${i <= genStepIndex ? "active" : ""}`} />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            )}
+            
         </div>
     )
 }

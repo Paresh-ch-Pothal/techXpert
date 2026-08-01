@@ -44,17 +44,14 @@ export const uploadFileToCloudinary = (file, sig, onProgress) => {
 }
 
 export const uploadVideoAndThumbnail = async (videoFile, thumbnailFile, token, onProgress) => {
-    // Get both signatures first (fast, tiny requests)
     const [videoSig, thumbSig] = await Promise.all([
         getUploadSignature(token, 'video'),
         getUploadSignature(token, 'image'),
     ])
 
-    // Track progress for each file separately, combine into one overall percent
     const progressState = { video: 0, thumbnail: 0 }
     const updateOverall = () => {
         if (onProgress) {
-            // Weight video much higher since it's the large file
             const overall = Math.round(progressState.video * 0.9 + progressState.thumbnail * 0.1)
             onProgress(overall)
         }
@@ -75,4 +72,20 @@ export const uploadVideoAndThumbnail = async (videoFile, thumbnailFile, token, o
         videoURL: videoResult.secure_url,
         thumbnailURL: thumbResult.secure_url,
     }
+}
+
+/**
+ * Uploads a single video or image asset to Cloudinary
+ * @param {File} file - The file object to upload
+ * @param {'video' | 'image'} resourceType - Cloudinary resource type
+ * @param {string} token - User auth token
+ * @param {function} onProgress - Progress tracking callback
+ */
+export const uploadSingleAsset = async (file, resourceType, token, onProgress) => {
+    const sig = await getUploadSignature(token, resourceType);
+    const result = await uploadFileToCloudinary(file, sig, onProgress);
+    return {
+        url: result.secure_url,
+        publicId: result.public_id
+    };
 }

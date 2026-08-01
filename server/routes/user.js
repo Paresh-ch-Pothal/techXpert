@@ -6,6 +6,7 @@ const bcrypt = require("bcryptjs");
 const JWT = require("jsonwebtoken");
 const fetchuser = require("../middleware/fetchuser");
 const Playlist = require("../models/playlist");
+const { default: mongoose } = require("mongoose");
 // const JWT_SECRET = "^@12@34#%^&8@1%6$5^&#1234";
 require("dotenv").config()
 const JWT_SECRET=process.env.JWT_SECRET
@@ -130,5 +131,106 @@ router.get("/populatingTheCompletedPlaylist",fetchuser,async(req,res)=>{
         
     }
 })
+
+router.get("/completed-playlists-user-completed", fetchuser, async (req, res) => {
+    try {
+        const userId = req.user.id;
+
+        // 1. Validate the incoming User ID syntax
+        if (!mongoose.Types.ObjectId.isValid(userId)) {
+            return res.status(400).json({ success: false, message: "Invalid User ID format." });
+        }
+
+        // 2. Perform aggregation to find intersecting completed playlists and certificate status
+        const completedPlaylists = await User.aggregate([
+            // Stage 1: Match the specific user document
+            { $match: { _id: new mongoose.Types.ObjectId(userId) } },
+
+            // Stage 2: Cache the user's certificates array to use later in the projection stage
+            // We use $addFields to ensure it carries through the unwinding processes intact
+            {
+                $addFields: {
+                    currentUserCertificates: { $ifNull: ["$userCertificates", []] }
+                }
+            },
+
+            // Stage 3: Unwind the completedPlaylist array to work with individual IDs
+            { $unwind: "$completedPlaylist" },
+
+            // Stage 4: Look up the playlist details from the 'playlists' collection
+            {
+                $lookup: {
+                    from: "playlists", // Ensure this matches your actual MongoDB collection name
+                    localField: "completedPlaylist",
+                    foreignField: "_id",
+                    as: "playlistDetails"
+                }
+            },
+
+            // Stage 5: Flatten the playlistDetails array resulting from the lookup
+            { $unwind: "$playlistDetails" },
+
+            // Stage 6: Filter for playlists where the creator marked it as completed
+            { $match: { "playlistDetails.isCompleted": true } },
+
+            // Stage 7: Look up the actual Certificate documents that belong to this user 
+            // and match the current playlist name
+            {
+                $lookup: {
+                    from: "certificates", // Collection name for Certificate
+                    let: { 
+                        playlistName: "$playlistDetails.name", 
+                        userCertIds: "$currentUserCertificates" 
+                    },
+                    pipeline: [
+                        {
+                            $match: {
+                                $expr: {
+                                    $and: [
+                                        // Match the playlist name
+                                        { $eq: ["$playListName", "$$playlistName"] },
+                                        // Ensure the certificate ID is present in the user's certificate array
+                                        { $in: ["$_id", "$$userCertIds"] }
+                                    ]
+                                }
+                            }
+                        }
+                    ],
+                    as: "matchedCertificate"
+                }
+            },
+
+            // Stage 8: Project/Shape the output to return the playlist details + certified status flag
+            {
+                $project: {
+                    _id: "$playlistDetails._id",
+                    name: "$playlistDetails.name",
+                    videos: "$playlistDetails.videos",
+                    userid: "$playlistDetails.userid", // The creator of the playlist
+                    isCompleted: "$playlistDetails.isCompleted",
+                    createdAt: "$playlistDetails.createdAt",
+                    updatedAt: "$playlistDetails.updatedAt",
+                    // If matchedCertificate array size > 0, the user already has a certificate for this playlist
+                    isCertified: { $gt: [{ $size: "$matchedCertificate" }, 0] }
+                }
+            }
+        ]);
+
+        // 3. Return the array of dual-completed playlists
+        return res.status(200).json({
+            success: true,
+            count: completedPlaylists.length,
+            data: completedPlaylists
+        });
+
+    } catch (error) {
+        console.error("Error fetching completed playlists:", error);
+        return res.status(500).json({ 
+            success: false, 
+            message: "Server error while fetching completed playlists." 
+        });
+    }
+});
+
 
 module.exports = router;
