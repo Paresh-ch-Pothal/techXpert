@@ -13,6 +13,9 @@ load_dotenv()
 
 
 app = FastAPI(title='LMS Questions Generator Services')
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
 if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
     raise RuntimeError("Missing HUGGINGFACEHUB_API_TOKEN environment variable")

@@ -34,7 +34,7 @@ exports.generateAndSaveTest = async (req, res) => {
         const aiResponse = await axios.post(`${PYTHON_AI_SERVICE_URL}/generate-test`, {
             topic: topic,
             test_type: test_type
-        });
+        }, { timeout: 60000 });
 
         // 2. Safely capture the extracted questions array from Python's response
         const generatedQuestions = aiResponse.data.questions;
@@ -68,8 +68,8 @@ exports.generateAndSaveTest = async (req, res) => {
         console.error("Express Assessment Pipeline Error:", error.message);
 
         // Handle cases where the Python service is offline
-        if (error.code === 'ECONNREFUSED') {
-            return res.status(503).json({ error: "AI processing engine is currently offline." });
+        if (error.code === 'ECONNREFUSED' || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            return res.status(503).json({ error: "AI processing engine is waking up, please try again in a few seconds." });
         }
 
         return res.status(500).json({ error: "Internal server error configuring assessment layer." });
