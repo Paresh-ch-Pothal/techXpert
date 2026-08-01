@@ -729,6 +729,20 @@ const TestPage = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [codeLanguages, setCodeLanguages] = useState({});
+  const CODE_LANGUAGE_OPTIONS = [
+    { value: "javascript", label: "JavaScript" },
+    { value: "typescript", label: "TypeScript" },
+    { value: "python", label: "Python" },
+    { value: "java", label: "Java" },
+    { value: "cpp", label: "C++" },
+    { value: "csharp", label: "C#" },
+    { value: "go", label: "Go" },
+  ];
+
+  const handleLanguageChange = (questionId, language) => {
+    setCodeLanguages((prev) => ({ ...prev, [questionId]: language }));
+  };
 
   const submittedRef = useRef(false); // guards against double-submit (timer + manual click racing)
 
@@ -817,7 +831,7 @@ const TestPage = () => {
   useEffect(() => {
     return () => {
       if (document.fullscreenElement) {
-        document.exitFullscreen?.().catch(() => {});
+        document.exitFullscreen?.().catch(() => { });
       }
     };
   }, []);
@@ -1050,9 +1064,8 @@ const TestPage = () => {
           )}
 
           <span
-            className={`txp-mono text-sm font-medium tabular-nums ${
-              timeCritical ? "text-[#F0897A] animate-pulse" : "text-white"
-            }`}
+            className={`txp-mono text-sm font-medium tabular-nums ${timeCritical ? "text-[#F0897A] animate-pulse" : "text-white"
+              }`}
           >
             {formatTime(secondsLeft)}
           </span>
@@ -1093,13 +1106,12 @@ const TestPage = () => {
                 <button
                   key={q._id}
                   onClick={() => goToIndex(i)}
-                  className={`txp-mono shrink-0 w-8 h-8 rounded-full text-[11px] font-medium border transition-colors ${
-                    current
-                      ? "bg-[#C6741B] border-[#C6741B] text-white"
-                      : answered
+                  className={`txp-mono shrink-0 w-8 h-8 rounded-full text-[11px] font-medium border transition-colors ${current
+                    ? "bg-[#C6741B] border-[#C6741B] text-white"
+                    : answered
                       ? "bg-[#FBF0DF] border-[#EAD3AE] text-[#A15E13]"
                       : "bg-white border-[#E8E4DA] text-[#94918A]"
-                  }`}
+                    }`}
                 >
                   {i + 1}
                 </button>
@@ -1132,15 +1144,14 @@ const TestPage = () => {
                 {currentQuestion.type === "case studies"
                   ? "Case study"
                   : currentQuestion.type === "coding"
-                  ? "Problem statement"
-                  : "Question"}
+                    ? "Problem statement"
+                    : "Question"}
               </span>
               <div
-                className={`select-none ${
-                  currentQuestion.type === "mcq"
-                    ? ""
-                    : "max-h-[420px] overflow-y-auto pr-1 border border-[#E8E4DA] rounded-xl p-4 bg-white"
-                }`}
+                className={`select-none ${currentQuestion.type === "mcq"
+                  ? ""
+                  : "max-h-[420px] overflow-y-auto pr-1 border border-[#E8E4DA] rounded-xl p-4 bg-white"
+                  }`}
               >
                 <p className="txp-wordmark text-[#101827] text-lg sm:text-xl font-semibold leading-snug whitespace-pre-wrap">
                   {currentQuestion.questionText}
@@ -1161,11 +1172,10 @@ const TestPage = () => {
                     return (
                       <label
                         key={i}
-                        className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-colors ${
-                          selected
-                            ? "border-[#C6741B] bg-[#FBF0DF]"
-                            : "border-[#E8E4DA] hover:border-[#D8B98A]"
-                        }`}
+                        className={`flex items-center gap-3 border rounded-xl px-4 py-3 cursor-pointer transition-colors ${selected
+                          ? "border-[#C6741B] bg-[#FBF0DF]"
+                          : "border-[#E8E4DA] hover:border-[#D8B98A]"
+                          }`}
                       >
                         <input
                           type="radio"
@@ -1176,9 +1186,8 @@ const TestPage = () => {
                           className="sr-only"
                         />
                         <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                            selected ? "border-[#C6741B]" : "border-[#D8D3C6]"
-                          }`}
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${selected ? "border-[#C6741B]" : "border-[#D8D3C6]"
+                            }`}
                         >
                           {selected && <span className="w-2 h-2 rounded-full bg-[#C6741B]" />}
                         </span>
@@ -1207,12 +1216,23 @@ const TestPage = () => {
               {currentQuestion.type === "coding" && (
                 <div className="border border-[#E8E4DA] rounded-xl overflow-hidden">
                   <div className="bg-[#101827] px-4 py-2 flex items-center justify-between">
-                    <span className="txp-mono text-[10px] uppercase text-[#D8D5CC]">JavaScript</span>
+                    <select
+                      className="txp-mono text-[10px] uppercase bg-[#1B2333] text-[#D8D5CC] border border-[#2E3648] rounded px-2 py-1 outline-none cursor-pointer"
+                      value={codeLanguages[currentQuestion._id] || "javascript"}
+                      onChange={(e) => handleLanguageChange(currentQuestion._id, e.target.value)}
+                    >
+                      {CODE_LANGUAGE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
+                    </select>
+
                     <span className="txp-mono text-[10px] text-[#7A7669]">Autosaved</span>
                   </div>
                   <Editor
                     height="420px"
-                    defaultLanguage="javascript"
+                    language={codeLanguages[currentQuestion._id] || "javascript"}
                     theme="vs-dark"
                     value={answers[currentQuestion._id] ?? currentQuestion.initialCode ?? ""}
                     onChange={(value) => handleAnswerChange(currentQuestion._id, value || "")}
