@@ -8,8 +8,11 @@ from langchain_ollama import ChatOllama
 from langchain_core.prompts import PromptTemplate,ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from dotenv import load_dotenv
+import uvicorn
 
 load_dotenv()
+
+
 
 
 app = FastAPI(title='LMS Questions Generator Services')
