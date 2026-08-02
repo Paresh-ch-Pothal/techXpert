@@ -65,14 +65,18 @@ exports.generateAndSaveTest = async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Express Assessment Pipeline Error:", error.message);
+        console.error("Express Assessment Pipeline Error:", error);
 
-        // Handle cases where the Python service is offline
         if (error.code === 'ECONNREFUSED' || error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
             return res.status(503).json({ error: "AI processing engine is waking up, please try again in a few seconds." });
         }
 
-        return res.status(500).json({ error: "Internal server error configuring assessment layer." });
+        // Temporary: Send the exact message and Axios response data back to the frontend alert
+        return res.status(500).json({
+            error: "Internal server error configuring assessment layer.",
+            message: error.message,
+            pythonResponse: error.response ? error.response.data : "No response data"
+        });
     }
 };
 
@@ -236,7 +240,7 @@ exports.submitAndEvaluateTest = async (req, res) => {
             try {
                 const aiResponse = await axios.post(`${PYTHON_AI_SERVICE_URL}/evaluate_submissions`, {
                     submissions: aiSubmissions
-                },{ timeout: 120000 });
+                }, { timeout: 120000 });
 
                 aiResponse.data.evaluations.forEach(evalItem => {
                     totalScore += evalItem.score;
