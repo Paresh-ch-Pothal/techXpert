@@ -144,3 +144,11 @@ Ensure your entire output is valid JSON. Do not include any introductory text or
     except Exception as e:
         print(f"❌ CRITICAL PYTHON GRADER ERROR: {str(e)}")
         raise HTTPException(status_code=500, detail=f"AI Evaluation Error: {str(e)}")
+
+
+
+if __name__ == "__main__":
+    # Render provides the port dynamically via an environment variable. Fallback to 8000 locally.
+    port = int(os.environ.get("PORT", 8000))
+    # host must be 0.0.0.0 so the outside network router can bind to it
+    uvicorn.run("main:app", host="0.0.0.0", port=port)
