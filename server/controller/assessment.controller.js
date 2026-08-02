@@ -34,7 +34,7 @@ exports.generateAndSaveTest = async (req, res) => {
         const aiResponse = await axios.post(`${PYTHON_AI_SERVICE_URL}/generate-test`, {
             topic: topic,
             test_type: test_type
-        }, { timeout: 60000 });
+        }, { timeout: 120000 });
 
         // 2. Safely capture the extracted questions array from Python's response
         const generatedQuestions = aiResponse.data.questions;
@@ -236,7 +236,7 @@ exports.submitAndEvaluateTest = async (req, res) => {
             try {
                 const aiResponse = await axios.post(`${PYTHON_AI_SERVICE_URL}/evaluate_submissions`, {
                     submissions: aiSubmissions
-                });
+                },{ timeout: 120000 });
 
                 aiResponse.data.evaluations.forEach(evalItem => {
                     totalScore += evalItem.score;
