@@ -16,9 +16,14 @@ import CoursePlaylist from './component/CoursePlaylist';
 import ShowSearchPlaylist from './component/ShowSearchPlaylist';
 import Certificates from './component/Certificates';
 import About from './component/About';
-import TestPage from './component/TestPage';
+
+
 import TestResultPage from './component/TestResultPage';
 import ScrollToTop from './utils/ScrollToTop';
+import { lazy } from 'react';
+
+
+const TestPage = lazy(() => import("./component/TestPage"));
 
 // This wrapper handles showing/hiding layouts based on the active path
 function AppLayout() {
