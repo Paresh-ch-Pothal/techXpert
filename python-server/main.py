@@ -191,7 +191,7 @@ if not USE_DUMMY_DATA:
         raise RuntimeError("Missing HUGGINGFACEHUB_API_TOKEN environment variable")
 
     raw_llm = HuggingFaceEndpoint(
-        repo_id="Qwen/Qwen2.5-Coder-32B-Instruct",
+        repo_id="Qwen/Qwen2.5-72B-Instruct",
         task="text-generation",
         max_new_tokens=2048,
         temperature=0.3, # Low temperature keep answers deterministic and structurally sound
