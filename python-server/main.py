@@ -187,18 +187,16 @@ def health_check():
 USE_DUMMY_DATA = os.getenv("USE_DUMMY_DATA", "false").lower() in ("1", "true", "yes")
 
 if not USE_DUMMY_DATA:
-    if not os.getenv("HUGGINGFACEHUB_API_TOKEN"):
-        raise RuntimeError("Missing HUGGINGFACEHUB_API_TOKEN environment variable")
+    if not os.getenv("GOOGLE_API_KEY"):
+        raise RuntimeError("Missing GOOGLE_API_KEY environment variable")
 
-    raw_llm = HuggingFaceEndpoint(
-        repo_id="Qwen/Qwen2.5-72B-Instruct",
-        task="text-generation",
-        max_new_tokens=2048,
-        temperature=0.3, # Low temperature keep answers deterministic and structurally sound
-        do_sample=True
+    from langchain_google_genai import ChatGoogleGenerativeAI
+
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0.3,  # Low temperature keeps answers deterministic and structurally sound
+        max_output_tokens=2048,
     )
-
-    llm = ChatHuggingFace(llm=raw_llm)
 else:
     llm = None  # not needed in dummy mode
 
